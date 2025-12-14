@@ -16,7 +16,7 @@ class NotificationService {
   Future<void> initialize() async {
     // 1. Initialize Local Notifications
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@mipmap/launcher_icon');
 
     const DarwinInitializationSettings initializationSettingsDarwin =
         DarwinInitializationSettings();
@@ -124,7 +124,7 @@ class NotificationService {
         'fcm_token': token,
         'last_active_at': DateTime.now().toIso8601String(),
         'device_name': deviceName,
-      }, onConflict: 'user_id, fcm_token'); 
+      }, onConflict: 'user_id, fcm_token');
     } catch (e) {
       if (kDebugMode) {
         print('Error saving FCM token: $e');

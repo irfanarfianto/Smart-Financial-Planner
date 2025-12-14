@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'app_colors.dart';
 import 'app_text_styles.dart';
 
@@ -29,6 +30,11 @@ class AppTheme {
         elevation: 0,
         centerTitle: true,
         titleTextStyle: AppTextStyles.titleLarge,
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark, // Android: Dark icons
+          statusBarBrightness: Brightness.dark, // iOS: Dark icons
+        ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(

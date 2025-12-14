@@ -68,153 +68,150 @@ class _DashboardPageState extends State<DashboardPage> {
             .where((t) => t.type == 'EXPENSE')
             .fold(0.0, (sum, t) => sum + t.amount);
 
-        return AnnotatedRegion<SystemUiOverlayStyle>(
-          value: SystemUiOverlayStyle.dark,
-          child: Scaffold(
-            floatingActionButton: FloatingActionButton(
-              onPressed: () async {
-                final result = await context.push('/add-transaction');
-                if (context.mounted && result == true) {
-                  context.read<WalletBloc>().add(FetchWallets());
-                  context.read<TransactionBloc>().add(FetchTransactions());
-                }
-              },
-              backgroundColor: Colors.black,
-              child: const Icon(Icons.add, color: Colors.white),
-            ),
-            appBar: AppBar(
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              title: Padding(
-                padding: const EdgeInsets.only(left: 8.0),
-                child: Text(
-                  'Dashboard',
-                  style: AppTextStyles.headlineMedium.copyWith(
-                    color: Colors.black,
-                  ),
-                ),
-              ),
-              actions: [
-                Padding(
-                  padding: const EdgeInsets.only(right: 8.0),
-                  child: IconButton(
-                    icon: const Icon(Icons.settings, color: Colors.black),
-                    onPressed: () async {
-                      await context.push('/settings');
-                      if (context.mounted) {
-                        context.read<ProfileBloc>().add(LoadProfile());
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
-            body: RefreshIndicator(
-              onRefresh: () async {
+        return Scaffold(
+          floatingActionButton: FloatingActionButton(
+            onPressed: () async {
+              final result = await context.push('/add-transaction');
+              if (context.mounted && result == true) {
                 context.read<WalletBloc>().add(FetchWallets());
                 context.read<TransactionBloc>().add(FetchTransactions());
-                context.read<ProfileBloc>().add(LoadProfile());
-              },
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                // Padding handled by children for full-bleed effects
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 16),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: _buildGreeting(),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Monthly Summary Card
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: MonthlySummaryCard(
-                        totalIncome: totalIncome,
-                        totalExpense: totalExpense,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Wallets Section
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Text(
-                        'Dompet Saya',
-                        style: AppTextStyles.headlineMedium,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildWalletList(),
-                    const SizedBox(height: 24),
-
-                    // Wallet Distribution Chart
-                    BlocBuilder<WalletBloc, WalletState>(
-                      builder: (context, walletState) {
-                        if (walletState is WalletLoaded &&
-                            walletState.wallets.isNotEmpty) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24),
-                            child: Column(
-                              children: [
-                                WalletDistributionChart(
-                                  wallets: walletState.wallets,
-                                ),
-                                const SizedBox(height: 24),
-                              ],
-                            ),
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      },
-                    ),
-
-                    // Insights Section
-                    BlocBuilder<WalletBloc, WalletState>(
-                      builder: (context, walletState) {
-                        if (walletState is WalletLoaded &&
-                            isTransactionLoaded) {
-                          return InsightsSection(
-                            totalIncome: totalIncome,
-                            totalExpense: totalExpense,
-                            wallets: walletState.wallets,
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      },
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Financial Health Widget
-                    BlocBuilder<WalletBloc, WalletState>(
-                      builder: (context, walletState) {
-                        if (walletState is WalletLoaded &&
-                            isTransactionLoaded &&
-                            walletState.wallets.isNotEmpty) {
-                          Wallet needsWallet;
-                          try {
-                            needsWallet = walletState.wallets.firstWhere(
-                              (w) => w.category == 'NEEDS',
-                            );
-                          } catch (e) {
-                            needsWallet = walletState.wallets.first;
-                          }
-                          final daysInMonth = DateTime.now().day;
-
-                          return FinancialHealthWidget(
-                            needsBalance: needsWallet.currentBalance,
-                            totalExpense: totalExpense,
-                            daysInMonth: daysInMonth,
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      },
-                    ),
-                    const SizedBox(height: 80), // Bottom padding for FAB
-                  ],
+              }
+            },
+            backgroundColor: Colors.black,
+            child: const Icon(Icons.add, color: Colors.white),
+          ),
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            title: Padding(
+              padding: const EdgeInsets.only(left: 8.0),
+              child: Text(
+                'Dashboard',
+                style: AppTextStyles.headlineMedium.copyWith(
+                  color: Colors.black,
                 ),
+              ),
+            ),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: IconButton(
+                  icon: const Icon(Icons.settings, color: Colors.black),
+                  onPressed: () async {
+                    await context.push('/settings');
+                    if (context.mounted) {
+                      context.read<ProfileBloc>().add(LoadProfile());
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+          body: RefreshIndicator(
+            onRefresh: () async {
+              context.read<WalletBloc>().add(FetchWallets());
+              context.read<TransactionBloc>().add(FetchTransactions());
+              context.read<ProfileBloc>().add(LoadProfile());
+            },
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              // Padding handled by children for full-bleed effects
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: _buildGreeting(),
+                  ),
+                  const SizedBox(height: 24),
+        
+                  // Monthly Summary Card
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: MonthlySummaryCard(
+                      totalIncome: totalIncome,
+                      totalExpense: totalExpense,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+        
+                  // Wallets Section
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Text(
+                      'Dompet Saya',
+                      style: AppTextStyles.headlineMedium,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildWalletList(),
+                  const SizedBox(height: 24),
+        
+                  // Wallet Distribution Chart
+                  BlocBuilder<WalletBloc, WalletState>(
+                    builder: (context, walletState) {
+                      if (walletState is WalletLoaded &&
+                          walletState.wallets.isNotEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: Column(
+                            children: [
+                              WalletDistributionChart(
+                                wallets: walletState.wallets,
+                              ),
+                              const SizedBox(height: 24),
+                            ],
+                          ),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+        
+                  // Insights Section
+                  BlocBuilder<WalletBloc, WalletState>(
+                    builder: (context, walletState) {
+                      if (walletState is WalletLoaded &&
+                          isTransactionLoaded) {
+                        return InsightsSection(
+                          totalIncome: totalIncome,
+                          totalExpense: totalExpense,
+                          wallets: walletState.wallets,
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                  const SizedBox(height: 24),
+        
+                  // Financial Health Widget
+                  BlocBuilder<WalletBloc, WalletState>(
+                    builder: (context, walletState) {
+                      if (walletState is WalletLoaded &&
+                          isTransactionLoaded &&
+                          walletState.wallets.isNotEmpty) {
+                        Wallet needsWallet;
+                        try {
+                          needsWallet = walletState.wallets.firstWhere(
+                            (w) => w.category == 'NEEDS',
+                          );
+                        } catch (e) {
+                          needsWallet = walletState.wallets.first;
+                        }
+                        final daysInMonth = DateTime.now().day;
+        
+                        return FinancialHealthWidget(
+                          needsBalance: needsWallet.currentBalance,
+                          totalExpense: totalExpense,
+                          daysInMonth: daysInMonth,
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                  const SizedBox(height: 80), // Bottom padding for FAB
+                ],
               ),
             ),
           ),

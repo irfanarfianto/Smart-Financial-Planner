@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -22,6 +23,16 @@ import 'features/wallet/presentation/bloc/wallet_event.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Force Status Bar to be transparent with Dark Icons (black icons)
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark, // Android: Dark icons
+      statusBarBrightness: Brightness.dark, // iOS: Dark icons
+    ),
+  );
+
   await initializeDateFormatting('id_ID', null);
   Bloc.observer = AppBlocObserver();
 
