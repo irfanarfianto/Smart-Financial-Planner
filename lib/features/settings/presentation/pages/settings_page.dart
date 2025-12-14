@@ -48,9 +48,10 @@ class SettingsView extends StatelessWidget {
       isDestructive: false,
     );
 
-    if (confirm == true && context.mounted) {
-      context.read<AuthBloc>().add(LogoutRequested());
-    }
+    if (confirm != true) return;
+    if (!context.mounted) return;
+
+    context.read<AuthBloc>().add(LogoutRequested());
   }
 
   Future<void> _resetData(BuildContext context) async {
@@ -70,9 +71,10 @@ class SettingsView extends StatelessWidget {
       icon: Icons.delete_forever,
     );
 
-    if (confirm == true && context.mounted) {
-      context.read<ProfileBloc>().add(ResetDataEvent());
-    }
+    if (confirm != true) return;
+    if (!context.mounted) return;
+
+    context.read<ProfileBloc>().add(ResetDataEvent());
   }
 
   void _navigateTo(BuildContext context, Widget page) {
@@ -83,6 +85,7 @@ class SettingsView extends StatelessWidget {
             BlocProvider.value(value: context.read<ProfileBloc>(), child: page),
       ),
     ).then((_) {
+      if (!context.mounted) return;
       context.read<ProfileBloc>().add(LoadProfile());
     });
   }

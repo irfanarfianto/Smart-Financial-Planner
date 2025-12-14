@@ -27,7 +27,7 @@ class CategoryDropdown extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: selectedCategory,
+          initialValue: selectedCategory,
           icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
           isExpanded: true,
           isDense: true,

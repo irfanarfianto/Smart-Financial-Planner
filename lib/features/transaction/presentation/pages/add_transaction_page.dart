@@ -128,7 +128,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     }
   }
 
-  Future<void> _submit(BuildContext context) async {
+  Future<void> _submit() async {
     if (_formKey.currentState!.validate()) {
       if (_selectedType == 'EXPENSE' && _selectedCategory == null) {
         AppToast.warning(context, 'Pilih kategori pengeluaran');
@@ -161,6 +161,8 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
           // Continue without receipt
         }
       }
+
+      if (!mounted) return;
 
       // Check purchase warning for NEEDS expenses
       if (_selectedType == 'EXPENSE' && _selectedCategory == 'NEEDS') {
@@ -205,6 +207,8 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
           }
         }
       }
+
+      if (!mounted) return;
 
       final transaction = TransactionEntity(
         amount: amount,
@@ -356,7 +360,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                     AppButton(
                       text: 'Simpan',
                       isLoading: state is TransactionLoading,
-                      onPressed: () => _submit(context),
+                      onPressed: () => _submit(),
                     ),
                   ],
                 ),

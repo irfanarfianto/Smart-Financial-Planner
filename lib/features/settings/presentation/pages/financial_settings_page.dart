@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_input_formatter.dart';
@@ -96,20 +97,20 @@ class _FinancialSettingsPageState extends State<FinancialSettingsPage> {
         ),
       ),
       body: BlocConsumer<ProfileBloc, ProfileState>(
-        listener: (context, state) {
+        listener: (context, state) async {
           if (state is ProfileUpdateSuccess) {
             // Show result dialog if Model changed, or just Toast?
             // User likes dialog for model change.
-            AppAlertDialog.show(
+            await AppAlertDialog.show(
               context,
               title: 'Berhasil',
               message:
                   'Pengaturan keuangan berhasil diperbarui. Alokasi baru akan diterapkan mulai pemasukan berikutnya.',
               positiveButtonText: 'Mengerti',
               icon: Icons.check_circle,
-            ).then((_) {
-              if (mounted) Navigator.pop(context);
-            });
+            );
+
+            if (context.mounted) context.pop();
           } else if (state is ProfileError) {
             AppToast.error(context, state.message);
           }
