@@ -21,3 +21,9 @@
 # General Safe Guards
 -keep class androidx.lifecycle.DefaultLifecycleObserver
 -keep class androidx.** { *; }
+
+# Google Play Core (Fix for Deferred Components / Split Install R8 errors)
+-dontwarn com.google.android.play.core.splitcompat.**
+-dontwarn com.google.android.play.core.splitinstall.**
+-dontwarn com.google.android.play.core.tasks.**
+-dontwarn io.flutter.embedding.engine.deferredcomponents.**
