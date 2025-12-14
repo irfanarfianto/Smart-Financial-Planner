@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "428793686186",
+    "project_id": "smart-financial-planner-f30a7",
+    "storage_bucket": "smart-financial-planner-f30a7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:428793686186:android:8bdfd7159b40da349548d3",
+        "android_client_info": {
+          "package_name": "com.example.smart_financial_planner"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQtOc2kzLHghKfGSRAt9yqIrYbXPR6VS8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

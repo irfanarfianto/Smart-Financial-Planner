@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@supabase/supabase-js": "^2.87.1",
+    "google-auth-library": "^9.15.1"
+  }
+}
