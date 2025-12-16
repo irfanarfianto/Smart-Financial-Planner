@@ -5,7 +5,7 @@ import 'auth_remote_data_source.dart';
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final sb.SupabaseClient supabaseClient;
 
-  AuthRemoteDataSourceImpl(this.supabaseClient);
+  AuthRemoteDataSourceImpl({required this.supabaseClient});
 
   @override
   Future<void> loginWithEmail(String email, String password) async {
@@ -46,5 +46,26 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     } catch (e) {
       throw AuthenticationException(e.toString());
     }
+  }
+
+  @override
+  Future<bool> hasActiveModel(String userId) async {
+    try {
+      final response = await supabaseClient
+          .from('profiles')
+          .select('active_model_id')
+          .eq('id', userId)
+          .maybeSingle();
+
+      return response != null && response['active_model_id'] != null;
+    } catch (e) {
+      throw AuthenticationException(e.toString());
+    }
+  }
+
+  @override
+  String? getCurrentUserId() {
+    final session = supabaseClient.auth.currentSession;
+    return session?.user.id;
   }
 }

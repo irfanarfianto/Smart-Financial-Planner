@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/services/injection_container.dart';
+import '../../../../core/services/notification_service.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../bloc/onboarding_bloc.dart';
@@ -39,6 +40,9 @@ class _OnboardingViewState extends State<OnboardingView> {
       body: BlocConsumer<OnboardingBloc, OnboardingState>(
         listener: (context, state) {
           if (state is OnboardingSuccess) {
+            // Save FCM token after successful onboarding
+            sl<NotificationService>().saveCurrentToken();
+
             context.go('/dashboard'); // Assuming dashboard route exists
           } else if (state is OnboardingError) {
             AppToast.error(context, state.message);

@@ -9,11 +9,14 @@ import 'core/services/injection_container.dart' as di;
 
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'core/services/notification_service.dart';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/utils/app_bloc_observer.dart';
 
+import 'features/auth/presentation/bloc/auth_bloc.dart';
+import 'features/auth/presentation/bloc/auth_event.dart';
 import 'features/settings/presentation/bloc/profile_bloc.dart';
 import 'features/settings/presentation/bloc/profile_event.dart';
 import 'features/transaction/presentation/bloc/transaction_bloc.dart';
@@ -52,6 +55,12 @@ Future<void> main() async {
   // Initialize Notifications
   await di.sl<NotificationService>().initialize();
 
+  // Register Background Handler
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
+  // Trigger initial auth check
+  di.sl<AuthBloc>().add(CheckAuthStatus());
+
   runApp(const MyApp());
 }
 
@@ -62,6 +71,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
+        BlocProvider.value(value: di.sl<AuthBloc>()),
         BlocProvider(create: (_) => di.sl<ProfileBloc>()..add(LoadProfile())),
         BlocProvider(create: (_) => di.sl<WalletBloc>()..add(FetchWallets())),
         BlocProvider(

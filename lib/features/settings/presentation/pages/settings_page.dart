@@ -15,6 +15,10 @@ import '../bloc/profile_event.dart';
 import '../bloc/profile_state.dart';
 import 'edit_profile_page.dart';
 import 'financial_settings_page.dart';
+import 'package:smart_financial_planner/features/transaction/presentation/bloc/transaction_bloc.dart';
+import 'package:smart_financial_planner/features/transaction/presentation/bloc/transaction_event.dart';
+import 'package:smart_financial_planner/features/wallet/presentation/bloc/wallet_bloc.dart';
+import 'package:smart_financial_planner/features/wallet/presentation/bloc/wallet_event.dart';
 import 'notification_settings_page.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -98,7 +102,12 @@ class SettingsView extends StatelessWidget {
           listener: (context, state) {
             if (state is ProfileResetSuccess) {
               AppToast.success(context, 'Semua data berhasil dihapus!');
-              context.go('/login');
+
+              // Refresh data to reflect empty state
+              context.read<WalletBloc>().add(FetchWallets());
+              context.read<TransactionBloc>().add(FetchTransactions());
+
+              context.go('/dashboard');
             } else if (state is ProfileError) {
               AppToast.error(context, state.message);
             }

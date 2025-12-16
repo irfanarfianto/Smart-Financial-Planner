@@ -9,4 +9,7 @@ abstract class AuthRepository {
     String fullName,
   );
   Future<Either<Failure, void>> logout();
+  Future<Either<Failure, AuthStatus>> checkAuthStatus();
 }
+
+enum AuthStatus { unauthenticated, authenticated, onboardingRequired }

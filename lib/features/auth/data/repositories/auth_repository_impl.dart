@@ -51,4 +51,23 @@ class AuthRepositoryImpl implements AuthRepository {
       return Left(AuthFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, AuthStatus>> checkAuthStatus() async {
+    try {
+      final userId = remoteDataSource.getCurrentUserId();
+      if (userId == null) {
+        return const Right(AuthStatus.unauthenticated);
+      }
+
+      final hasModel = await remoteDataSource.hasActiveModel(userId);
+      if (hasModel) {
+        return const Right(AuthStatus.authenticated);
+      } else {
+        return const Right(AuthStatus.onboardingRequired);
+      }
+    } catch (e) {
+      return Left(AuthFailure(e.toString()));
+    }
+  }
 }

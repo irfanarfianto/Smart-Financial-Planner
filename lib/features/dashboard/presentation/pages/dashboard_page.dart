@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:smart_financial_planner/core/theme/app_colors.dart';
@@ -125,7 +124,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     child: _buildGreeting(),
                   ),
                   const SizedBox(height: 24),
-        
+
                   // Monthly Summary Card
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -135,7 +134,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                   ),
                   const SizedBox(height: 24),
-        
+
                   // Wallets Section
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -147,7 +146,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   const SizedBox(height: 16),
                   _buildWalletList(),
                   const SizedBox(height: 24),
-        
+
                   // Wallet Distribution Chart
                   BlocBuilder<WalletBloc, WalletState>(
                     builder: (context, walletState) {
@@ -168,12 +167,11 @@ class _DashboardPageState extends State<DashboardPage> {
                       return const SizedBox.shrink();
                     },
                   ),
-        
+
                   // Insights Section
                   BlocBuilder<WalletBloc, WalletState>(
                     builder: (context, walletState) {
-                      if (walletState is WalletLoaded &&
-                          isTransactionLoaded) {
+                      if (walletState is WalletLoaded && isTransactionLoaded) {
                         return InsightsSection(
                           totalIncome: totalIncome,
                           totalExpense: totalExpense,
@@ -184,7 +182,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     },
                   ),
                   const SizedBox(height: 24),
-        
+
                   // Financial Health Widget
                   BlocBuilder<WalletBloc, WalletState>(
                     builder: (context, walletState) {
@@ -200,7 +198,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           needsWallet = walletState.wallets.first;
                         }
                         final daysInMonth = DateTime.now().day;
-        
+
                         return FinancialHealthWidget(
                           needsBalance: needsWallet.currentBalance,
                           totalExpense: totalExpense,
@@ -223,6 +221,23 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget _buildGreeting() {
     return BlocBuilder<ProfileBloc, ProfileState>(
       builder: (context, state) {
+        if (state is ProfileLoading) {
+          return Row(
+            children: [
+              const AppShimmer(width: 48, height: 48, borderRadius: 24),
+              const SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  AppShimmer(width: 100, height: 14, borderRadius: 4),
+                  SizedBox(height: 8),
+                  AppShimmer(width: 150, height: 20, borderRadius: 4),
+                ],
+              ),
+            ],
+          );
+        }
+
         final user = Supabase.instance.client.auth.currentUser;
         String userName = user?.email?.split('@').first ?? 'User';
         String? avatarUrl;

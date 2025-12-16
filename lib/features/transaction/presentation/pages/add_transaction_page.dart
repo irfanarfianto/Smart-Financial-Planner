@@ -1,26 +1,22 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/services/injection_container.dart';
-import '../../../../core/services/ocr_service.dart';
-import '../../../../core/services/storage_service.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/currency_input_formatter.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
-import '../../../../core/utils/currency_input_formatter.dart';
 import '../../../../core/widgets/app_toast.dart';
-import '../../domain/entities/transaction_entity.dart';
-import '../bloc/transaction_bloc.dart';
-import '../bloc/transaction_event.dart';
-import '../bloc/transaction_state.dart';
+import '../../../wallet/domain/entities/wallet.dart';
 import '../../../wallet/presentation/bloc/wallet_bloc.dart';
 import '../../../wallet/presentation/bloc/wallet_state.dart';
-import '../../../dashboard/presentation/widgets/financial_health_widget.dart';
-import '../widgets/transaction_type_selector.dart';
+import '../bloc/add_transaction/add_transaction_bloc.dart';
+import '../bloc/add_transaction/add_transaction_event.dart';
+import '../bloc/add_transaction/add_transaction_state.dart';
 import '../widgets/category_dropdown.dart';
 import '../widgets/transaction_date_picker.dart';
+import '../widgets/transaction_type_selector.dart';
 
 class AddTransactionPage extends StatefulWidget {
   const AddTransactionPage({super.key});
@@ -32,13 +28,6 @@ class AddTransactionPage extends StatefulWidget {
 class _AddTransactionPageState extends State<AddTransactionPage> {
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
-
-  String _selectedType = 'INCOME'; // INCOME, EXPENSE
-  String? _selectedCategory; // NEEDS, INVEST, SAVING (For Expense)
-  DateTime _selectedDate = DateTime.now();
-  File? _receiptImage; // Store scanned receipt image
-  // Store uploaded receipt URL
 
   @override
   void dispose() {
@@ -47,9 +36,8 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     super.dispose();
   }
 
-  Future<void> _scanReceipt() async {
-    // Show bottom sheet to choose camera or gallery
-    final source = await showModalBottomSheet<ImageSource>(
+  void _onScanReceipt(BuildContext context) {
+    showModalBottomSheet<ImageSource>(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -77,122 +65,65 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
           ],
         ),
       ),
-    );
-
-    if (source == null) return;
-
-    final ocrService = sl<OcrService>();
-    final imageFile = source == ImageSource.camera
-        ? await ocrService.pickImageFromCamera()
-        : await ocrService.pickImageFromGallery();
-
-    if (imageFile == null) return;
-
-    // Show loading
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
-
-    try {
-      final result = await ocrService.processImage(imageFile);
-
-      if (!mounted) return;
-      Navigator.of(context).pop(); // Close loading
-
-      // Fill in the form with OCR results
-      if (result.amount != null) {
-        _amountController.text = result.amount!.toStringAsFixed(0);
+    ).then((source) {
+      if (source != null && context.mounted) {
+        context.read<AddTransactionBloc>().add(ScanReceiptRequested(source));
       }
-      if (result.date != null) {
-        setState(() {
-          _selectedDate = result.date!;
-        });
-      }
-      if (result.merchantName != null) {
-        _descriptionController.text = result.merchantName!;
-      }
-
-      // Store receipt image for upload
-      setState(() {
-        _receiptImage = imageFile;
-      });
-
-      AppToast.success(context, 'Struk berhasil dipindai!');
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.of(context).pop(); // Close loading
-      AppToast.error(context, 'Gagal memindai struk: $e');
-    }
+    });
   }
 
-  Future<void> _submit() async {
-    if (_formKey.currentState!.validate()) {
-      if (_selectedType == 'EXPENSE' && _selectedCategory == null) {
-        AppToast.warning(context, 'Pilih kategori pengeluaran');
-        return;
-      }
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => sl<AddTransactionBloc>(),
+      child: BlocConsumer<AddTransactionBloc, AddTransactionState>(
+        listenWhen: (previous, current) {
+          return previous.status != current.status ||
+              previous.amount != current.amount ||
+              previous.description != current.description ||
+              (previous.warningMessage != current.warningMessage &&
+                  current.warningMessage != null);
+        },
+        listener: (context, state) {
+          // Sync controllers with state (e.g. from OCR)
+          if (state.amount.isNotEmpty &&
+              _amountController.text.replaceAll(RegExp(r'[^0-9]'), '') !=
+                  state.amount.replaceAll(RegExp(r'[^0-9]'), '')) {
+            _amountController.text = state.amount;
+          }
+          if (state.description.isNotEmpty &&
+              _descriptionController.text.isEmpty) {
+            _descriptionController.text = state.description;
+          }
 
-      final amount = double.tryParse(
-        _amountController.text.replaceAll(RegExp(r'[^0-9]'), ''),
-      );
+          // Handle Status
+          if (state.status == AddTransactionStatus.success) {
+            AppToast.success(context, 'Transaksi berhasil disimpan!');
+            context.pop(true);
+          } else if (state.status == AddTransactionStatus.failure) {
+            AppToast.error(context, state.errorMessage ?? 'Terjadi kesalahan');
+          } else if (state.status == AddTransactionStatus.scanning) {
+            AppToast.info(context, 'Memproses struk...');
+          }
 
-      if (amount == null || amount <= 0) {
-        return;
-      }
-
-      // Upload receipt if exists
-      String? receiptUrl;
-      if (_receiptImage != null) {
-        try {
-          // Show uploading indicator
-          if (!mounted) return;
-          AppToast.info(context, 'Mengupload struk...');
-
-          final storageService = sl<StorageService>();
-          receiptUrl = await storageService.uploadReceipt(_receiptImage!);
-
-          setState(() {});
-        } catch (e) {
-          if (!mounted) return;
-          AppToast.error(context, 'Gagal upload struk: $e');
-          // Continue without receipt
-        }
-      }
-
-      if (!mounted) return;
-
-      // Check purchase warning for NEEDS expenses
-      if (_selectedType == 'EXPENSE' && _selectedCategory == 'NEEDS') {
-        final walletBloc = context.read<WalletBloc>();
-        if (walletBloc.state is WalletLoaded) {
-          final needsWallet = (walletBloc.state as WalletLoaded).wallets
-              .firstWhere(
-                (w) => w.category == 'NEEDS',
-                orElse: () => (walletBloc.state as WalletLoaded).wallets.first,
-              );
-
-          final warning = FinancialHealthWidget.getPurchaseWarning(
-            needsWallet.currentBalance,
-            amount,
-          );
-
-          if (warning != null) {
-            // Show warning dialog
-            final proceed = await showDialog<bool>(
+          // Handle Warning Dialog
+          if (state.warningMessage != null) {
+            showDialog<bool>(
               context: context,
-              builder: (context) => AlertDialog(
+              builder: (dialogContext) => AlertDialog(
                 title: const Text('⚠️ Peringatan Keuangan'),
-                content: Text(warning),
+                content: Text(state.warningMessage!),
                 actions: [
                   TextButton(
-                    onPressed: () => Navigator.pop(context, false),
+                    onPressed: () {
+                      Navigator.pop(dialogContext, false);
+                    },
                     child: const Text('Batal'),
                   ),
                   ElevatedButton(
-                    onPressed: () => Navigator.pop(context, true),
+                    onPressed: () {
+                      Navigator.pop(dialogContext, true);
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                       foregroundColor: Colors.white,
@@ -201,39 +132,23 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                   ),
                 ],
               ),
-            );
-
-            if (proceed != true) return;
-          }
-        }
-      }
-
-      if (!mounted) return;
-
-      final transaction = TransactionEntity(
-        amount: amount,
-        type: _selectedType,
-        category: _selectedType == 'EXPENSE' ? _selectedCategory : null,
-        description: _descriptionController.text,
-        transactionDate: _selectedDate,
-        receiptUrl: receiptUrl,
-      );
-
-      context.read<TransactionBloc>().add(CreateTransaction(transaction));
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<TransactionBloc>(),
-      child: BlocConsumer<TransactionBloc, TransactionState>(
-        listener: (context, state) {
-          if (state is TransactionSuccess) {
-            AppToast.success(context, 'Transaksi berhasil disimpan!');
-            context.pop(true); // Return result to refresh dashboard
-          } else if (state is TransactionFailure) {
-            AppToast.error(context, state.message);
+            ).then((proceed) {
+              if (proceed == true && context.mounted) {
+                final walletState = context.read<WalletBloc>().state;
+                List<Wallet> wallets = [];
+                if (walletState is WalletLoaded) {
+                  wallets = walletState.wallets;
+                }
+                context.read<AddTransactionBloc>().add(
+                  SubmitTransactionRequested(
+                    wallets: wallets,
+                    ignoreWarning: true,
+                  ),
+                );
+              } else if (context.mounted) {
+                context.read<AddTransactionBloc>().add(WarningDismissed());
+              }
+            });
           }
         },
         builder: (context, state) {
@@ -253,117 +168,160 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
             ),
             body: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TransactionTypeSelector(
-                      selectedType: _selectedType,
-                      onTypeChanged: (type) {
-                        setState(() {
-                          _selectedType = type;
-                          if (type == 'INCOME') {
-                            _selectedCategory = null;
-                          }
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 32),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: AppTextField(
-                            controller: _amountController,
-                            label: 'Nominal',
-                            hintText: '0',
-                            keyboardType: TextInputType.number,
-                            prefixIcon: const Padding(
-                              padding: EdgeInsets.fromLTRB(16, 16, 8, 16),
-                              child: Text(
-                                'Rp',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.black87,
-                                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TransactionTypeSelector(
+                    selectedType: state.type,
+                    onTypeChanged: (type) {
+                      context.read<AddTransactionBloc>().add(
+                        TransactionTypeChanged(type),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 32),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: AppTextField(
+                          controller: _amountController,
+                          label: 'Nominal',
+                          hintText: '0',
+                          keyboardType: TextInputType.number,
+                          prefixIcon: const Padding(
+                            padding: EdgeInsets.fromLTRB(16, 16, 8, 16),
+                            child: Text(
+                              'Rp',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.black87,
                               ),
                             ),
-                            inputFormatters: [CurrencyInputFormatter()],
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Wajib diisi';
-                              }
-                              return null;
-                            },
                           ),
+                          inputFormatters: [CurrencyInputFormatter()],
+                          onChanged: (value) {
+                            context.read<AddTransactionBloc>().add(
+                              TransactionAmountChanged(value),
+                            );
+                          },
                         ),
-                        const SizedBox(width: 12),
-                        Container(
-                          margin: const EdgeInsets.only(top: 24),
-                          decoration: BoxDecoration(
-                            color: Colors.black,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: IconButton(
-                            icon: const Icon(
-                              Icons.camera_alt,
-                              color: Colors.white,
-                            ),
-                            onPressed: _scanReceipt,
-                            tooltip: 'Scan Struk',
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    if (_selectedType == 'EXPENSE') ...[
-                      CategoryDropdown(
-                        selectedCategory: _selectedCategory,
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedCategory = value;
-                          });
-                        },
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(width: 12),
+                      Container(
+                        margin: const EdgeInsets.only(top: 24),
+                        decoration: BoxDecoration(
+                          color: Colors.black,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child:
+                            state.status == AddTransactionStatus.scanning ||
+                                state.status == AddTransactionStatus.uploading
+                            ? const Padding(
+                                padding: EdgeInsets.all(12),
+                                child: SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              )
+                            : IconButton(
+                                icon: const Icon(
+                                  Icons.camera_alt,
+                                  color: Colors.white,
+                                ),
+                                onPressed: () => _onScanReceipt(context),
+                                tooltip: 'Scan Struk',
+                              ),
+                      ),
                     ],
-                    AppTextField(
-                      controller: _descriptionController,
-                      label: 'Keterangan',
-                      hintText: 'Contoh: Gaji Bulanan, Beli Kopi...',
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Wajib diisi';
-                        }
-                        return null;
+                  ),
+                  const SizedBox(height: 24),
+                  if (state.type == 'EXPENSE') ...[
+                    CategoryDropdown(
+                      selectedCategory: state.category,
+                      onChanged: (value) {
+                        context.read<AddTransactionBloc>().add(
+                          TransactionCategoryChanged(value),
+                        );
                       },
                     ),
                     const SizedBox(height: 24),
-                    Text(
-                      'Tanggal',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w500,
-                        fontSize: 14,
-                        color: Colors.black87,
+                  ],
+                  AppTextField(
+                    controller: _descriptionController,
+                    label: 'Keterangan',
+                    hintText: 'Contoh: Gaji Bulanan, Beli Kopi...',
+                    onChanged: (value) {
+                      context.read<AddTransactionBloc>().add(
+                        TransactionDescriptionChanged(value),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Tanggal',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TransactionDatePicker(
+                    selectedDate: state.date,
+                    onDateChanged: (date) {
+                      context.read<AddTransactionBloc>().add(
+                        TransactionDateChanged(date),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 40),
+
+                  if (state.receiptImage != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.receipt_long, color: Colors.grey[600]),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Struk terlampir',
+                              style: TextStyle(color: Colors.grey[800]),
+                            ),
+                          ),
+                          Icon(Icons.check_circle, color: Colors.green),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    TransactionDatePicker(
-                      selectedDate: _selectedDate,
-                      onDateChanged: (date) {
-                        setState(() {
-                          _selectedDate = date;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 40),
-                    AppButton(
-                      text: 'Simpan',
-                      isLoading: state is TransactionLoading,
-                      onPressed: () => _submit(),
-                    ),
+                    const SizedBox(height: 24),
                   ],
-                ),
+
+                  AppButton(
+                    text: 'Simpan',
+                    isLoading:
+                        state.status == AddTransactionStatus.submitting ||
+                        state.status == AddTransactionStatus.uploading,
+                    onPressed: () {
+                      final walletState = context.read<WalletBloc>().state;
+                      List<Wallet> wallets = [];
+                      if (walletState is WalletLoaded) {
+                        wallets = walletState.wallets;
+                      }
+                      context.read<AddTransactionBloc>().add(
+                        SubmitTransactionRequested(wallets: wallets),
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
           );

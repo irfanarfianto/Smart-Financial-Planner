@@ -10,6 +10,31 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<LoginRequested>(_onLogin);
     on<RegisterRequested>(_onRegister);
     on<LogoutRequested>(_onLogout);
+    on<CheckAuthStatus>(_onCheckAuthStatus);
+  }
+
+  Future<void> _onCheckAuthStatus(
+    CheckAuthStatus event,
+    Emitter<AuthState> emit,
+  ) async {
+    print('AuthBloc: CheckAuthStatus started'); // DEBUG
+    final result = await repository.checkAuthStatus();
+    result.fold(
+      (failure) {
+        print('AuthBloc: Check failed - ${failure.message}'); // DEBUG
+        emit(AuthFailureState(failure.message));
+      },
+      (status) {
+        print('AuthBloc: Check success - $status'); // DEBUG
+        if (status == AuthStatus.authenticated) {
+          emit(AuthAuthenticated());
+        } else if (status == AuthStatus.onboardingRequired) {
+          emit(AuthOnboardingRequired());
+        } else {
+          emit(AuthUnauthenticated());
+        }
+      },
+    );
   }
 
   Future<void> _onLogin(LoginRequested event, Emitter<AuthState> emit) async {

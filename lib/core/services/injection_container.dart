@@ -24,6 +24,7 @@ import '../../features/transaction/data/datasources/transaction_remote_data_sour
 import '../../features/transaction/data/datasources/transaction_remote_data_source_impl.dart';
 import '../../features/transaction/domain/usecases/add_transaction.dart';
 import '../../features/transaction/domain/usecases/get_transactions.dart';
+import '../../features/transaction/presentation/bloc/add_transaction/add_transaction_bloc.dart';
 
 import '../../features/onboarding/data/repositories/onboarding_repository_impl.dart';
 import '../../features/onboarding/domain/repositories/onboarding_repository.dart';
@@ -104,7 +105,8 @@ Future<void> init() async {
 
   // ! Features - Auth
   // Bloc
-  sl.registerFactory(() => AuthBloc(sl()));
+  // Bloc
+  sl.registerLazySingleton(() => AuthBloc(sl()));
 
   // Repository
   sl.registerLazySingleton<AuthRepository>(
@@ -113,7 +115,7 @@ Future<void> init() async {
 
   // Data sources
   sl.registerLazySingleton<AuthRemoteDataSource>(
-    () => AuthRemoteDataSourceImpl(sl()),
+    () => AuthRemoteDataSourceImpl(supabaseClient: sl()),
   );
   // ... (imports)
 
@@ -140,6 +142,13 @@ Future<void> init() async {
   // Bloc
   sl.registerFactory(
     () => TransactionBloc(addTransaction: sl(), getTransactions: sl()),
+  );
+  sl.registerFactory(
+    () => AddTransactionBloc(
+      addTransaction: sl(),
+      ocrService: sl(),
+      storageService: sl(),
+    ),
   );
 
   // Use cases

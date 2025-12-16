@@ -6,6 +6,7 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/services/injection_container.dart';
+import '../../../../core/services/notification_service.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
@@ -35,8 +36,11 @@ class _LoginPageState extends State<LoginPage> {
           child: BlocConsumer<AuthBloc, AuthState>(
             listener: (context, state) {
               if (state is AuthSuccess) {
+                // Save FCM token after successful login/register
+                sl<NotificationService>().saveCurrentToken();
+
                 // Navigate to root which will redirect to dashboard/onboarding
-                context.go('/');
+                context.go('/dashboard');
               } else if (state is AuthFailureState) {
                 AppToast.error(context, state.message);
               }

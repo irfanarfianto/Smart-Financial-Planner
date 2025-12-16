@@ -53,7 +53,6 @@ Deno.serve(async (req) => {
     console.log(`Running Check at WIB: ${targetTimeFull}`);
 
     // 3. Get Users matching this specific HH:mm:00
-    // 3. Get Users matching this specific HH:mm:00
     const { data: usersToNotify, error: userError } = await supabase
       .from('profiles')
       .select(`
@@ -80,13 +79,16 @@ Deno.serve(async (req) => {
     })));
 
     // 4. Check Transactions (Optimization: Only notify those who haven't transacted today)
-    const todayDate = new Date().toISOString().split('T')[0];
+    // Use WIB date (not UTC) to match user's local timezone
+    // Reuse wibDate from above (already calculated)
+    const todayDateWIB = wibDate.toISOString().split('T')[0]; // e.g., "2025-12-16"
+    
     const { data: transactingUsers, error: transError } = await supabase
         .from('transactions')
         .select('user_id')
         .in('user_id', userIds) // Only check relevant users
-        .gte('transaction_date', `${todayDate}T00:00:00`)
-        .lte('transaction_date', `${todayDate}T23:59:59`);
+        .gte('transaction_date', `${todayDateWIB}T00:00:00`)
+        .lte('transaction_date', `${todayDateWIB}T23:59:59`);
     
     if (transError) throw transError;
 
@@ -156,8 +158,15 @@ Deno.serve(async (req) => {
                 title: item.notification.title,
                 body: item.notification.body,
               },
+              android: {
+                priority: "high",
+                notification: {
+                   channel_id: "reminder_channel"
+                }
+              },
               data: {
-                route: "/add-transaction"
+                route: "/add-transaction",
+                category: "reminder"
               }
             },
           }),

@@ -6,4 +6,6 @@ abstract class AuthRemoteDataSource {
     String fullName,
   );
   Future<void> logout();
+  Future<bool> hasActiveModel(String userId);
+  String? getCurrentUserId();
 }
