@@ -141,7 +141,11 @@ Future<void> init() async {
   // ! Features - Transaction
   // Bloc
   sl.registerFactory(
-    () => TransactionBloc(addTransaction: sl(), getTransactions: sl()),
+    () => TransactionBloc(
+      addTransaction: sl(),
+      getTransactions: sl(),
+      repository: sl(),
+    ),
   );
   sl.registerFactory(
     () => AddTransactionBloc(

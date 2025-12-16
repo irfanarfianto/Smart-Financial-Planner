@@ -5,6 +5,8 @@ import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/dashboard/presentation/pages/dashboard_page.dart';
 import '../../features/transaction/presentation/pages/add_transaction_page.dart';
+import '../../features/transaction/presentation/pages/edit_transaction_page.dart';
+import '../../features/transaction/presentation/pages/transaction_history_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
 import 'package:smart_financial_planner/core/services/injection_container.dart'
     as di;
@@ -35,6 +37,17 @@ class AppRouter {
       GoRoute(
         path: '/add-transaction',
         builder: (context, state) => const AddTransactionPage(),
+      ),
+      GoRoute(
+        path: '/edit-transaction',
+        builder: (context, state) {
+          final transaction = state.extra as Map<String, dynamic>;
+          return EditTransactionPage(transaction: transaction['transaction']);
+        },
+      ),
+      GoRoute(
+        path: '/transaction-history',
+        builder: (context, state) => const TransactionHistoryPage(),
       ),
       GoRoute(
         path: '/settings',

@@ -35,14 +35,15 @@ class AppTextField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Label Outside
-        Text(
-          label,
-          style: const TextStyle(
-            fontWeight: FontWeight.w500, // Matched with CategoryDropdown
-            fontSize: 14,
-            color: Colors.black87,
+        if (label.isNotEmpty)
+          Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.w500, // Matched with CategoryDropdown
+              fontSize: 14,
+              color: Colors.black87,
+            ),
           ),
-        ),
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,

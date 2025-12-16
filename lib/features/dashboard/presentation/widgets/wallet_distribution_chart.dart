@@ -16,9 +16,10 @@ class WalletDistributionChart extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    // Use absolute values for chart calculation
     final total = wallets.fold<double>(
       0,
-      (sum, wallet) => sum + wallet.currentBalance,
+      (sum, wallet) => sum + wallet.currentBalance.abs(),
     );
 
     if (total <= 0) {
@@ -73,10 +74,13 @@ class WalletDistributionChart extends StatelessWidget {
     };
 
     return wallets.map((wallet) {
-      final percentage = (wallet.currentBalance / total) * 100;
+      // Use absolute value for percentage calculation
+      final absValue = wallet.currentBalance.abs();
+      final percentage = (absValue / total) * 100;
+
       return PieChartSectionData(
         color: colors[wallet.category] ?? Colors.grey,
-        value: wallet.currentBalance,
+        value: absValue, // Use absolute value for chart
         title: '${percentage.toStringAsFixed(0)}%',
         radius: 60,
         titleStyle: AppTextStyles.bodyMedium.copyWith(

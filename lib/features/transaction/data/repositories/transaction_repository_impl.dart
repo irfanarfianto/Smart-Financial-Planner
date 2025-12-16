@@ -36,4 +36,58 @@ class TransactionRepositoryImpl implements TransactionRepository {
       return Left(ServerFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, List<TransactionEntity>>> getTransactionsFiltered({
+    DateTime? startDate,
+    DateTime? endDate,
+    String? type,
+    String? searchQuery,
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    try {
+      final transactions = await remoteDataSource.getTransactionsFiltered(
+        startDate: startDate,
+        endDate: endDate,
+        type: type,
+        searchQuery: searchQuery,
+        limit: limit,
+        offset: offset,
+      );
+      return Right(transactions);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteTransaction(String transactionId) async {
+    try {
+      await remoteDataSource.deleteTransaction(transactionId);
+      // ignore: void_checks
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> updateTransaction(
+    TransactionEntity transaction,
+  ) async {
+    try {
+      await remoteDataSource.updateTransaction(transaction);
+      // ignore: void_checks
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
 }
